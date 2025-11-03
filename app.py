@@ -35,5 +35,10 @@ if st.button("Analyze Sentiment"):
         st.dataframe(articles)
 
         st.bar_chart(articles["sentiment"].value_counts())
+        # Count all possible sentiments (ensuring NEUTRAL always appears)
+sentiment_counts = articles["sentiment"].value_counts().reindex(["POSITIVE", "NEGATIVE", "NEUTRAL"], fill_value=0)
+
+st.bar_chart(sentiment_counts)
+
     else:
         st.error("No news found or invalid API key.")
