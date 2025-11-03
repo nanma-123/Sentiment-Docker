@@ -1,52 +1,39 @@
+# app.py
 import streamlit as st
 import pandas as pd
 import requests
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
-# --- App title ---
-st.title("📰 News Sentiment Analyzer")
+st.title("📰 News Sentiment Analyzer (VADER)")
 
-# --- Get user input ---
-api_key = st.text_input("Enter your News API key")
-query = st.text_input("Enter a topic (e.g. AI, Politics, Sports):")
+topic = st.text_input("Enter a news topic:", "Artificial Intelligence")
 
-if st.button("Analyze News"):
-    if not api_key or not query:
-        st.warning("Please enter both API key and topic.")
+if st.button("Analyze Sentiment"):
+    st.write(f"Fetching news for: **{topic}** ...")
+
+    url = f"https://gnews.io/api/v4/search?q={topic}&lang=en&country=in&max=5&apikey=be0238a91b7f6382dc296c4c273af92b"
+    response = requests.get(url)
+    data = response.json()
+
+    if "articles" in data:
+        articles = pd.DataFrame(data["articles"])[["title", "description", "url"]]
+
+        analyzer = SentimentIntensityAnalyzer()
+
+        sentiments = []
+        for i, row in articles.iterrows():
+            text = row["description"] or row["title"]
+            score = analyzer.polarity_scores(text)["compound"]
+            if score >= 0.05:
+                label = "POSITIVE"
+            elif score <= -0.05:
+                label = "NEGATIVE"
+            else:
+                label = "NEUTRAL"
+            sentiments.append(label)
+
+        articles["sentiment"] = sentiments
+        st.dataframe(articles)
+        st.bar_chart(articles["sentiment"].value_counts())
     else:
-        url = f"https://newsapi.org/v2/everything?q={query}&language=en&apiKey=be0238a91b7f6382dc296c4c273af92b"
-        response = requests.get(url)
-        data = response.json()
-
-        if data.get("status") != "ok":
-            st.error("No news found or invalid API key.")
-        else:
-            articles = data["articles"]
-            analyzer = SentimentIntensityAnalyzer()
-
-            news_data = []
-            for article in articles[:20]:  # analyze top 20 articles
-                title = article["title"]
-                description = article["description"] or ""
-                score = analyzer.polarity_scores(description)
-                compound = score['compound']
-
-                if compound >= 0.05:
-                    sentiment = "Positive"
-                elif compound <= -0.05:
-                    sentiment = "Negative"
-                else:
-                    sentiment = "Neutral"
-
-                news_data.append({
-                    "Title": title,
-                    "Description": description,
-                    "Sentiment": sentiment
-                })
-
-            df = pd.DataFrame(news_data)
-            st.dataframe(df)
-
-            # --- Sentiment summary chart ---
-            st.subheader("Sentiment Distribution")
-            st.bar_chart(df["Sentiment"].value_counts())
+        st.error("No news found or invalid API key.")
