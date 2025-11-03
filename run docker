@@ -1,0 +1,5 @@
+# Build image
+docker build -t news-sentiment .
+
+# Run container
+docker run -p 8501:8501 news-sentiment
