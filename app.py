@@ -36,7 +36,7 @@ if st.button("Analyze Sentiment"):
 
         st.bar_chart(articles["sentiment"].value_counts())
         # Count all possible sentiments (ensuring NEUTRAL always appears)
-sentiment_counts = articles["sentiment"].value_counts().reindex(["POSITIVE", "NEGATIVE", "NEUTRAL"], fill_value=0)
+        sentiment_counts = articles["sentiment"].value_counts().reindex(["POSITIVE", "NEGATIVE", "NEUTRAL"], fill_value=0)
 
 st.bar_chart(sentiment_counts)
 
