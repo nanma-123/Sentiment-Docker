@@ -1,44 +1,56 @@
-# app.py
 import streamlit as st
 import pandas as pd
 import requests
-from transformers import pipeline
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+import plotly.express as px
 
-# --- App title ---
-st.title("📰 News Sentiment Analyzer")
+st.title("📰 News Sentiment Analyzer (VADER)")
 
-# --- Input field ---
 topic = st.text_input("Enter a news topic:", "Artificial Intelligence")
 
 if st.button("Analyze Sentiment"):
     st.write(f"Fetching news for: **{topic}** ...")
 
-    # You can use GNews API or NewsAPI — here’s an example using GNews
-    url = f"https://gnews.io/api/v4/search?q={topic}&lang=en&country=in&max=5&apikey=be0238a91b7f6382dc296c4c273af92b"
+    url = f"https://gnews.io/api/v4/search?q={topic}&lang=en&country=in&max=5&apikey=YOUR_API_KEY"
     response = requests.get(url)
     data = response.json()
 
     if "articles" in data:
         articles = pd.DataFrame(data["articles"])[["title", "description", "url"]]
 
-        # Load sentiment model
-        sentiment_pipeline = pipeline("sentiment-analysis")
+        analyzer = SentimentIntensityAnalyzer()
 
-        st.subheader("Results")
         sentiments = []
         for i, row in articles.iterrows():
             text = row["description"] or row["title"]
-            result = sentiment_pipeline(text[:512])[0]
-            sentiments.append(result["label"])
+            score = analyzer.polarity_scores(text)["compound"]
+            if score >= 0.05:
+                label = "POSITIVE"
+            elif score <= -0.05:
+                label = "NEGATIVE"
+            else:
+                label = "NEUTRAL"
+            sentiments.append(label)
 
         articles["sentiment"] = sentiments
+
+        st.subheader("Results")
         st.dataframe(articles)
 
-        st.bar_chart(articles["sentiment"].value_counts())
-        # Count all possible sentiments (ensuring NEUTRAL always appears)
-        sentiment_counts = articles["sentiment"].value_counts().reindex(["POSITIVE", "NEGATIVE", "NEUTRAL"], fill_value=0)
+        # --- FIXED PART: Ensure all 3 bars appear ---
+        sentiment_counts = articles["sentiment"].value_counts().reindex(
+            ["POSITIVE", "NEGATIVE", "NEUTRAL"], fill_value=0
+        )
 
-st.bar_chart(sentiment_counts)
+        fig = px.bar(
+            sentiment_counts,
+            x=sentiment_counts.index,
+            y=sentiment_counts.values,
+            color=sentiment_counts.index,
+            title="Sentiment Distribution",
+            labels={"x": "Sentiment", "y": "Count"}
+        )
+        st.plotly_chart(fig)
 
     else:
         st.error("No news found or invalid API key.")
