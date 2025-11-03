@@ -14,7 +14,7 @@ if st.button("Analyze News"):
     if not api_key or not query:
         st.warning("Please enter both API key and topic.")
     else:
-        url = f"https://newsapi.org/v2/everything?q={query}&language=en&apiKey={api_key}"
+        url = f"https://newsapi.org/v2/everything?q={query}&language=en&apiKey=be0238a91b7f6382dc296c4c273af92b"
         response = requests.get(url)
         data = response.json()
 
